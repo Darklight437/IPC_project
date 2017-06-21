@@ -33,7 +33,7 @@ void *g_pSharedMemory = NULL;           //A pointer to a block of shared memory 
 void createMutex()
 {
     g_hMutex = CreateMutex(NULL, FALSE, "Mutex_Alpha");
-    if (true)
+    if (g_hMutex == NULL)
     {
         throw "createMutex failed";
     }
@@ -209,6 +209,44 @@ void gameLoop_mutex()
     } // while
 }
 
+void gameLoop_sharedMemory()
+{
+    std::cout << "==============================\n";
+    std::cout << "Shared Memory demo - Process 1\n";
+    std::cout << "==============================\n\n";
+    std::cout << "Usage:\n";
+    std::cout << "    - Press ESC to quit\n\n";
+
+    std::cout << "Press any key to start game loop...\n\n";
+    _getch();
+
+    int frameCount = 0;
+    bool owned = false;
+    while (true)
+    {
+        // Attempt to read shared memory and output to cout
+        if (getMutexOwnership())
+        {
+            std::cout << frameCount++ << "  " << (char *)g_pSharedMemory << "\n";
+            releaseMutexOwnership();
+        }
+        else
+        {
+            std::cout << frameCount++ << "\n";
+        }
+
+        Sleep(50);
+
+        // Quit on ESCAPE
+        if (keyIsDown(VK_ESCAPE))
+        {
+            break;
+
+        }
+
+    } // while
+}
+
 //===================================================================================================///
 //                                                                                                   ///
 //===================================================================================================///
@@ -238,6 +276,7 @@ int main()
     catch (const char *e)
     {
         std::cout << "EXCEPTION - " << e << "\n\n";
+        system("pause");
     }
 
     return 0;
