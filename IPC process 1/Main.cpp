@@ -25,10 +25,10 @@ HANDLE g_hFileMapping = NULL;           //a handle to a memory-wrapped file obje
 void *g_pSharedMemory = NULL;           //A pointer to a block of shared memory backed by a memory wrapped file
 
 
-///===================================================================================================///
-/// create a global Win32 mutex object with a name.
-///the name is what will ID the mutex between processes
-///===================================================================================================///
+//===================================================================================================///
+// create a global Win32 mutex object with a name.
+// the name is what will ID the mutex between processes
+//===================================================================================================///
 
 void createMutex()
 {
@@ -40,11 +40,11 @@ void createMutex()
 
 }
 
-///===================================================================================================///
-///
-/// destroy the mutex
-///
-///===================================================================================================///
+//===================================================================================================///
+//
+// destroy the mutex
+//
+//===================================================================================================///
 
 void destroyMutex()
 {
@@ -52,9 +52,9 @@ void destroyMutex()
     g_hMutex = INVALID_HANDLE_VALUE;
 }
 
-///===================================================================================================///
-///attempt to get the mutex
-///===================================================================================================///
+//===================================================================================================///
+// attempt to get the mutex
+//===================================================================================================///
 
 
 bool getMutexOwnership()
@@ -89,17 +89,156 @@ bool getMutexOwnership()
     };
 }
 
-///===================================================================================================///
-///
-/// release ownership of the mutex
-///
-///===================================================================================================///
+//===================================================================================================///
+//
+// release ownership of the mutex
+//
+//===================================================================================================///
 
 void releaseMutexOwnership()
 {
-    if (!ReleaseMutex())
+    if (!ReleaseMutex(g_hMutex))
     {
-
+        throw "ReleaseMutex failed";
     }
 }
 
+
+//===================================================================================================///
+//create a block of shared memory with a specified name and size the name is important
+//because it allows the memory to be recognised and shared between processes
+//===================================================================================================///
+
+void createSharedMemory(const char *name, unsigned numBytes)
+{
+
+    //create a file mapping object
+    g_hFileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, numBytes, name);
+    if (g_hFileMapping == NULL)
+    {
+        throw "CreateMappingFile failed";
+    }
+
+    //creating a 'view' into the shared mapping
+    //a view is effectively a block of memory that has been backed up by the system paging file
+    //using the pointer to access the block of data when allowed by the mutex
+    g_pSharedMemory = MapViewOfFile(g_hFileMapping, FILE_MAP_ALL_ACCESS, 0, 0, numBytes);
+        if (!g_pSharedMemory)
+        {
+            throw "MapViewOfFile failed";
+        }
+
+}
+
+//===================================================================================================///
+// release the memory
+//===================================================================================================///
+
+void releaseSharedMemory()
+{
+    if (g_pSharedMemory)
+    {
+        if (UnmapViewOfFile(g_pSharedMemory))
+        {
+            g_pSharedMemory = nullptr;
+        }
+        else
+        {
+            throw "UnmapViewOfFile failed";
+        }
+    }
+
+    if (g_hFileMapping)
+    {
+        CloseHandle(g_hFileMapping);
+        g_hFileMapping = NULL;
+    }
+}
+
+//===================================================================================================///
+//good old input function for keydown
+//===================================================================================================///
+
+
+bool keyIsDown(int code)
+{
+    return (GetAsyncKeyState(code) & 0x80000) != 0;
+}
+
+//===================================================================================================///
+// a game loop that demoes mutex ownership
+// copied from jeff for time
+//===================================================================================================///
+
+void gameLoop_mutex()
+{
+    std::cout << "======================\n";
+    std::cout << "Mutex demo - Process 1\n";
+    std::cout << "======================\n\n";
+    std::cout << "Usage:\n";
+    std::cout << "    - Press '1' to own mutex\n";
+    std::cout << "    - Press ESC to quit\n\n";
+
+    std::cout << "Press any key to start game loop...\n\n";
+    _getch();
+
+    bool owned = false;
+    while (true)
+    {
+        std::cout << (owned ? "owned" : "not owned") << "\n";
+
+        // Acquire ownership of the mutex as long as the '1' key is held down
+        if (!owned && keyIsDown('1'))
+        {
+            owned = getMutexOwnership();
+        }
+        if (owned && !keyIsDown('1'))
+        {
+            releaseMutexOwnership();
+            owned = false;
+        }
+
+        Sleep(100);
+
+        if (keyIsDown(VK_ESCAPE))
+        {
+            break;
+
+        }
+
+    } // while
+}
+
+//===================================================================================================///
+//                                                                                                   ///
+//===================================================================================================///
+
+int main()
+{
+
+    try
+    {
+        // Create a global mutex
+        createMutex();
+
+        // Create a global block of shared memory
+        createSharedMemory("Foo Memory", 10000);
+
+
+        gameLoop_mutex(); // Game loop to demo mutex handling
+                          //gameLoop_sharedMemory(); // Game loop to demo shared memory
+
+                          // Cleanup
+        releaseSharedMemory();
+        destroyMutex();
+
+        std::cout << "\nFinished! Press any key...\n\n";
+        _getch();
+    }
+    catch (const char *e)
+    {
+        std::cout << "EXCEPTION - " << e << "\n\n";
+    }
+
+    return 0;
+}
