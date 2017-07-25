@@ -32,7 +32,7 @@ void *g_pSharedMemory = NULL;           //A pointer to a block of shared memory 
 
 void createMutex()
 {
-    g_hMutex = CreateMutex(NULL, FALSE, "Mutex_Alpha");
+    g_hMutex = CreateMutex(NULL, FALSE, "MutexAlpha");
     if (g_hMutex == NULL)
     {
         throw "createMutex failed";
@@ -41,9 +41,7 @@ void createMutex()
 }
 
 //===================================================================================================///
-//
 // destroy the mutex
-//
 //===================================================================================================///
 
 void destroyMutex()
@@ -170,70 +168,34 @@ bool keyIsDown(int code)
 // copied from jeff for time
 //===================================================================================================///
 
-void gameLoop_mutex()
-{
-    std::cout << "======================\n";
-    std::cout << "Mutex demo - Process 1\n";
-    std::cout << "======================\n\n";
-    std::cout << "Usage:\n";
-    std::cout << "    - Press '1' to own mutex\n";
-    std::cout << "    - Press ESC to quit\n\n";
 
-    std::cout << "Press any key to start game loop...\n\n";
-    _getch();
-
-    bool owned = false;
-    while (true)
-    {
-        std::cout << (owned ? "owned" : "not owned") << "\n";
-
-        // Acquire ownership of the mutex as long as the '1' key is held down
-        if (!owned && keyIsDown('1'))
-        {
-            owned = getMutexOwnership();
-        }
-        if (owned && !keyIsDown('1'))
-        {
-            releaseMutexOwnership();
-            owned = false;
-        }
-
-        Sleep(100);
-
-        if (keyIsDown(VK_ESCAPE))
-        {
-            break;
-
-        }
-
-    } // while
-}
 
 void gameLoop_sharedMemory()
 {
+
+
     std::cout << "==============================\n";
-    std::cout << "Shared Memory demo - Process 1\n";
+    std::cout << "Game quiz demo ";
     std::cout << "==============================\n\n";
     std::cout << "Usage:\n";
     std::cout << "    - Press ESC to quit\n\n";
 
-    std::cout << "Press any key to start game loop...\n\n";
+    std::cout << "enter yes for true\n\n";
+    std::cin
     _getch();
 
     int frameCount = 0;
     bool owned = false;
     while (true)
     {
-        // Attempt to read shared memory and output to cout
+        // Attempt to write to shared memory and output to cout
         if (getMutexOwnership())
         {
-            std::cout << frameCount++ << "  " << (char *)g_pSharedMemory << "\n";
+            g_pSharedMemory
+            //std::cout << frameCount++ << "  " << (char *)g_pSharedMemory << "\n";
             releaseMutexOwnership();
         }
-        else
-        {
-            std::cout << frameCount++ << "\n";
-        }
+
 
         Sleep(50);
 
@@ -241,7 +203,6 @@ void gameLoop_sharedMemory()
         if (keyIsDown(VK_ESCAPE))
         {
             break;
-
         }
 
     } // while
@@ -261,10 +222,10 @@ int main()
 
         // Create a global block of shared memory
         createSharedMemory("Foo Memory", 10000);
+        *g_pSharedMemory = false;
 
-
-        gameLoop_mutex(); // Game loop to demo mutex handling
-                          //gameLoop_sharedMemory(); // Game loop to demo shared memory
+        //gameLoop_mutex(); // Game loop to demo mutex handling
+        gameLoop_sharedMemory(); // Game loop to demo shared memory
 
                           // Cleanup
         releaseSharedMemory();
