@@ -181,7 +181,7 @@ void gameLoop_sharedMemory()
     std::cout << "    - Press ESC to quit\n\n";
 
     std::cout << "enter yes for true\n\n";
-    std::cin
+   
     _getch();
 
     int frameCount = 0;
